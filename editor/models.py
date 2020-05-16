@@ -2,6 +2,10 @@ from django.db import models
 #from mongoengine import Document, EmbeddedDocument, fields
 
 # Create your models here.
+class usuario(models.Model):
+    email = models.EmailField()
+    password = models.CharField(max_length=50)
+    
 """
 class atribution(models.Model):
     id_arquetipo = models.TextField()

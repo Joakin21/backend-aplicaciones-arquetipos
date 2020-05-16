@@ -3,8 +3,16 @@ from django.shortcuts import render
 from rest_framework.decorators import api_view
 from rest_framework import generics
 from rest_framework.response import Response
-from editor.fileXmlManager import procesarXML
 
+#-------------------------para el login-------------------------------------
+#from django.contrib.auth.models import User
+from editor.models import usuario
+from rest_framework import viewsets
+from rest_framework import permissions
+from editor.serializers import UserSerializer
+#---------------------------------------------------------------------------
+
+from editor.fileXmlManager import procesarXML
 from pymongo import MongoClient
 from bson.objectid import ObjectId
 import pprint
@@ -87,3 +95,13 @@ def paraEditorArquetipos(request, question_id):
 
         return Response({"eliminar":True})
 
+#----------------------------------------------------------------------------------------
+#Para el login de usuarios
+#----------------------------------------------------------------------------------------
+class UserViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint that allows users to be viewed or edited.
+    """
+    queryset = usuario.objects.all()
+    serializer_class = UserSerializer
+    #permission_classes = [permissions.IsAuthenticated]
