@@ -40,7 +40,8 @@ INSTALLED_APPS = [
     'rest_framework',
     'djangotoolbox',
     'corsheaders',
-    'editor.apps.EditorConfig'
+    'editor.apps.EditorConfig',
+    'rest_framework.authtoken'
 ]
 
 MIDDLEWARE = [

@@ -5,11 +5,16 @@ from rest_framework import generics
 from rest_framework.response import Response
 
 #-------------------------para el login-------------------------------------
-#from django.contrib.auth.models import User
-from editor.models import usuario
+from django.contrib.auth.models import User
+#from editor.models import usuario
 from rest_framework import viewsets
 from rest_framework import permissions
 from editor.serializers import UserSerializer
+from rest_framework.authentication import TokenAuthentication
+from rest_framework.permissions import IsAuthenticated
+from django.shortcuts import get_object_or_404
+from rest_framework.authtoken.views import ObtainAuthToken
+from rest_framework.authtoken.models import Token
 #---------------------------------------------------------------------------
 
 from editor.fileXmlManager import procesarXML
@@ -52,6 +57,14 @@ def paraListaArquetipos(request):
         arq_collection.delete_many({})
 
         return Response({"eliminar":True})
+
+"""@api_view(['GET'])
+def obtenerUsuarioLogeado(request, token):
+    if request.method == 'GET':
+        user = Token.objects.get(key=token).user
+        print (user)
+        return Response({"respuestra":True})"""
+
 
 @api_view(['GET', 'PUT', 'DELETE'])
 def paraEditorArquetipos(request, question_id):
@@ -102,6 +115,28 @@ class UserViewSet(viewsets.ModelViewSet):
     """
     API endpoint that allows users to be viewed or edited.
     """
-    queryset = usuario.objects.all()
+    
+    queryset = User.objects.all().order_by('-date_joined')
     serializer_class = UserSerializer
-    #permission_classes = [permissions.IsAuthenticated]
+    authentication_classes = (TokenAuthentication,)
+    permission_classes = (IsAuthenticated,)
+
+    """def retrieve(self, request, pk=None):
+        queryset = User.objects.all()
+        user = get_object_or_404(queryset, pk=pk)
+        serializer = UserSerializer(user)
+        return Response(serializer.data)"""
+
+class CustomAuthToken(ObtainAuthToken):
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.serializer_class(data=request.data,
+                                           context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        user = serializer.validated_data['user']
+        token, created = Token.objects.get_or_create(user=user)
+        return Response({
+            'token': token.key,
+            'user_id': user.pk,
+            'usurname': user.email
+        })

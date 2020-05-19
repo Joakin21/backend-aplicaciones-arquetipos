@@ -4,9 +4,15 @@ from editor import views
 from rest_framework.urlpatterns import format_suffix_patterns
 
 from rest_framework import routers
+from rest_framework.authtoken.views import ObtainAuthToken
+
+from editor.views import UserViewSet
+from editor.views import CustomAuthToken
 
 router = routers.DefaultRouter()
 router.register(r'users', views.UserViewSet)
+
+#user_detail = UserViewSet.as_view({'get': 'retrieve'})
 
 urlpatterns = [
 	#url(r'^mensajes/$', views.mensajesList.as_view()),
@@ -15,7 +21,11 @@ urlpatterns = [
 	url(r'^arquetipos/(?P<question_id>[\w\-]+)/$', views.paraEditorArquetipos),
 	#para el login
 	url(r'^', include(router.urls)),
-    url(r'^api-auth/', include('rest_framework.urls', namespace='rest_framework'))
+	#url(r'^auth/', ObtainAuthToken.as_view()),
+	url(r'^auth/', CustomAuthToken.as_view())
+	#url(r'^myUser/<int:pk>/', user_detail, name='user_detail')
+	#para obtener usuario
+	#url(r'^test/(?P<question_id>[\w\-]+)/$', views.obtenerUsuarioLogeado)
 
 ]
 #probar para el editor, a lo mejor necesite la linea de abajo para cargar archivos xml 
