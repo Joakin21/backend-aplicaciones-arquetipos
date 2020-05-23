@@ -22,7 +22,9 @@ urlpatterns = [
 	#para el login
 	url(r'^', include(router.urls)),
 	#url(r'^auth/', ObtainAuthToken.as_view()),
-	url(r'^auth/', CustomAuthToken.as_view())
+	url(r'^auth/', CustomAuthToken.as_view()),
+
+	url(r'^pacientes/(?P<rut_paciente>[\w\-]+)/$', views.pacientesView)
 	#url(r'^myUser/<int:pk>/', user_detail, name='user_detail')
 	#para obtener usuario
 	#url(r'^test/(?P<question_id>[\w\-]+)/$', views.obtenerUsuarioLogeado)

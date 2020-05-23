@@ -1,10 +1,13 @@
 from django.db import models
+from django.contrib.auth.models import User
 #from mongoengine import Document, EmbeddedDocument, fields
 
 # Create your models here.
-class usuario(models.Model):
-    email = models.EmailField()
-    password = models.CharField(max_length=50)
+class ProfesionalSalud(models.Model):
+
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    profesion = models.CharField(max_length=50)
+    centro_salud = models.CharField(max_length=50)
     
 """
 class atribution(models.Model):

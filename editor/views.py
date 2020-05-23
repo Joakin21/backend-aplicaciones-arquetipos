@@ -6,10 +6,14 @@ from rest_framework.response import Response
 
 #-------------------------para el login-------------------------------------
 from django.contrib.auth.models import User
-#from editor.models import usuario
+from editor.models import ProfesionalSalud
+
 from rest_framework import viewsets
 from rest_framework import permissions
+
 from editor.serializers import UserSerializer
+from editor.serializers import ProfesionalSaludSerializer
+
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
@@ -25,6 +29,7 @@ import pprint
 client = MongoClient()
 db = client['proyecto4']
 arq_collection = db["arquetipos"]
+paciente_collection = db["historial_paciente"]
 
 def listaArquetipos():
     aArquetipos = []
@@ -65,6 +70,32 @@ def obtenerUsuarioLogeado(request, token):
         print (user)
         return Response({"respuestra":True})"""
 
+@api_view(['GET'])
+def pacientesView(request, rut_paciente):
+    #obtener token desde el header (front), obtener token del usuario logeado (back)
+    #ejemplo token: 9e85bf9faf3d2c7de18e6fa069c795ca89e48dca
+    
+    is_token_valid = True
+    #Se captura un error en caso de que no se envie un token o el token enviado sea incorrecto
+    try:
+        token_in_request = request.headers["Authorization"]
+        user = Token.objects.get(key=token_in_request).user
+    except:
+        is_token_valid = False
+
+    #print("Usuario valido:",is_token_valid)
+    if is_token_valid:
+        if request.method == 'GET':
+            paciente = paciente_collection.find_one({"rut":rut_paciente})
+            if(paciente):
+                respuesta = {"rut":paciente["rut"], "nombre":paciente["nombre"], "apellidos":paciente["apellidos"]}
+            else:
+                respuesta = {"detail": "Patient not found"}
+
+            return Response(respuesta)
+        return Response({"detail":"Only get method is allowed"})
+    else:
+        return Response({"detail": "Authentication credentials were not provided."})
 
 @api_view(['GET', 'PUT', 'DELETE'])
 def paraEditorArquetipos(request, question_id):
@@ -115,17 +146,17 @@ class UserViewSet(viewsets.ModelViewSet):
     """
     API endpoint that allows users to be viewed or edited.
     """
-    
+    """
     queryset = User.objects.all().order_by('-date_joined')
     serializer_class = UserSerializer
     authentication_classes = (TokenAuthentication,)
     permission_classes = (IsAuthenticated,)
+    """ 
+    queryset = ProfesionalSalud.objects.all().order_by('-date_joined')
+    serializer_class = ProfesionalSaludSerializer
+    authentication_classes = (TokenAuthentication,)
+    permission_classes = (IsAuthenticated,)
 
-    """def retrieve(self, request, pk=None):
-        queryset = User.objects.all()
-        user = get_object_or_404(queryset, pk=pk)
-        serializer = UserSerializer(user)
-        return Response(serializer.data)"""
 
 class CustomAuthToken(ObtainAuthToken):
 
@@ -135,8 +166,13 @@ class CustomAuthToken(ObtainAuthToken):
         serializer.is_valid(raise_exception=True)
         user = serializer.validated_data['user']
         token, created = Token.objects.get_or_create(user=user)
+        #solu: retornar el id del profesional relacionado a ese usuario
+        #obtenemos el profesional
+        profesional = ProfesionalSalud.objects.get(user_id=user.pk)
+        print (profesional.id)
+
         return Response({
             'token': token.key,
-            'user_id': user.pk,
-            'usurname': user.email
+            'user_id': profesional.id,#user.pk,
+            'usurname': user.username
         })
