@@ -70,7 +70,7 @@ def obtenerUsuarioLogeado(request, token):
         print (user)
         return Response({"respuestra":True})"""
 
-@api_view(['GET'])
+@api_view(['GET', 'PUT', 'POST'])
 def pacientesView(request, rut_paciente):
     #obtener token desde el header (front), obtener token del usuario logeado (back)
     #ejemplo token: 9e85bf9faf3d2c7de18e6fa069c795ca89e48dca
@@ -88,12 +88,22 @@ def pacientesView(request, rut_paciente):
         if request.method == 'GET':
             paciente = paciente_collection.find_one({"rut":rut_paciente})
             if(paciente):
-                respuesta = {"rut":paciente["rut"], "nombre":paciente["nombre"], "apellidos":paciente["apellidos"]}
+                paciente["_id"] = str(paciente["_id"])
+                respuesta = paciente#{"rut":paciente["rut"], "nombre":paciente["nombre"], "apellidos":paciente["apellidos"]}
             else:
                 respuesta = {"detail": "Patient not found"}
 
             return Response(respuesta)
-        return Response({"detail":"Only get method is allowed"})
+
+        if request.method == 'PUT':
+            #print(request.data)
+            result_update = paciente_collection.update_one({'rut': rut_paciente}, {'$set': request.data})
+            return Response({"result": True})
+        
+        if request.method == 'POST':
+            result_post = paciente_collection.insert_one(request.data).inserted_id
+            return Response({"_id": str(result_post)})
+        
     else:
         return Response({"detail": "Authentication credentials were not provided."})
 
