@@ -24,7 +24,9 @@ urlpatterns = [
 	#url(r'^auth/', ObtainAuthToken.as_view()),
 	url(r'^auth/', CustomAuthToken.as_view()),
 
-	url(r'^pacientes/(?P<rut_paciente>[\w\-]+)/$', views.pacientesView)
+	url(r'^pacientes/(?P<rut_paciente>[\w\-]+)/$', views.pacientesView),
+	#trae pacientes atendidos por el user:
+	url(r'^pacientes_atendidos/(?P<usuario>[\w\-]+)/$', views.pacientesAtendidosView)
 	#url(r'^myUser/<int:pk>/', user_detail, name='user_detail')
 	#para obtener usuario
 	#url(r'^test/(?P<question_id>[\w\-]+)/$', views.obtenerUsuarioLogeado)
