@@ -148,12 +148,21 @@ def paraEditorArquetipos(request, question_id):
         #print (request.data)
         
         #borro el arquetipo en la db
+        """
+        request.data.pop('_id')
+        result_update = arq_collection.update_one({'_id': question_id}, {'$set': request.data})
+        return Response({"result": True})
+        """
+        request.data.pop('_id')
         try:
-            arq_collection.remove({'_id':ObjectId(question_id)})
-            resultado = arq_collection.insert_one(request.data)
+            
+            """arq_collection.remove({'_id':ObjectId(question_id)})
+            resultado = arq_collection.insert_one(request.data)"""
+            result_update = arq_collection.update_one({'_id': ObjectId(question_id)}, {'$set': request.data})
         except:
-            arq_collection.remove({'_id':question_id})
-            resultado = arq_collection.insert_one(request.data)
+            """arq_collection.remove({'_id':question_id})
+            resultado = arq_collection.insert_one(request.data)"""
+            result_update = arq_collection.update_one({'_id': question_id}, {'$set': request.data})
 
         #inserto el nuevo arquetipo
         
