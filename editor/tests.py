@@ -1,3 +1,13 @@
-from django.test import TestCase
+from django.test import TestCase, Client
+from django.urls import reverse
+
 
 # Create your tests here.
+class TestViews(TestCase):
+
+    def test_prject_list_GET(self):
+        client = Client()
+        
+        response = client.get(reverse('list'))
+
+        self.assertEquals(response.status_code, 200)
