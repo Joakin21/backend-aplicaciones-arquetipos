@@ -19,6 +19,8 @@ from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
 from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.authtoken.models import Token
+
+from cryptography.fernet import Fernet
 #---------------------------------------------------------------------------
 
 from editor.fileXmlManager import procesarXML
@@ -28,8 +30,60 @@ import pprint
 
 client = MongoClient()
 db = client['proyecto4']
-arq_collection = db["arquetipos"]
+arq_collection = db["arquetipos"]#db["arquetipos_es"]
 paciente_collection = db["historial_paciente"]
+
+key_test = "QJhfUw_LWLPe6uEbDd808C9eUeOxUBQfj5a4ln6o8UU=".encode()
+algoritmo = Fernet(key_test)
+
+def procesar(dato, accion):
+	global algoritmo
+	if accion == "encriptar":
+		return algoritmo.encrypt(dato.encode("utf-8"))
+	if accion == "desencriptar":
+		return algoritmo.decrypt(dato).decode("utf-8")
+	return dato
+
+#Encriptacion  de prueba
+def encriptar_or_desencriptar(historial_clinico, accion):
+	"""key_test = "QJhfUw_LWLPe6uEbDd808C9eUeOxUBQfj5a4ln6o8UU=".encode()
+				algoritmo = Fernet(key_test)"""
+	global key_test
+	global algoritmo
+
+
+	historial_clinico["nombre"] = procesar(historial_clinico["nombre"], accion)#algoritmo.encrypt(historial_clinico["nombre"].encode("utf-8"))
+	historial_clinico["apellidos"] = procesar(historial_clinico["apellidos"], accion)
+	#historial_clinico["rut"] = procesar(historial_clinico["rut"], accion)
+	historial_clinico["direccion"] = procesar(historial_clinico["direccion"], accion)
+	historial_clinico["fecha_nacimiento"] = procesar(historial_clinico["fecha_nacimiento"], accion)
+	historial_clinico["ciudad"] = procesar(historial_clinico["ciudad"], accion)
+
+	"""for i in range(len(historial_clinico["profesionales_que_atendieron"])):
+		if accion == "encriptar":
+			historial_clinico["profesionales_que_atendieron"][i] = procesar(str(historial_clinico["profesionales_que_atendieron"][i]), accion)
+		if accion == "desencriptar":
+			historial_clinico["profesionales_que_atendieron"][i] = procesar(historial_clinico["profesionales_que_atendieron"][i], accion)
+    """
+	for i in range(len(historial_clinico["sesiones_medica"])):
+		historial_clinico["sesiones_medica"][i]["nombre_sesion"] = procesar(historial_clinico["sesiones_medica"][i]["nombre_sesion"], accion)
+		historial_clinico["sesiones_medica"][i]["fecha"] = procesar(historial_clinico["sesiones_medica"][i]["fecha"], accion)
+		historial_clinico["sesiones_medica"][i]["nombre_profesional"] = procesar(historial_clinico["sesiones_medica"][i]["nombre_profesional"], accion)
+		historial_clinico["sesiones_medica"][i]["profesion"] = procesar(historial_clinico["sesiones_medica"][i]["profesion"], accion)
+		historial_clinico["sesiones_medica"][i]["centro_salud"] = procesar(historial_clinico["sesiones_medica"][i]["centro_salud"], accion)
+		#Arquetipos:
+		for j in range(len(historial_clinico["sesiones_medica"][i]["arquetipos"])):
+			for k in range(len(historial_clinico["sesiones_medica"][i]["arquetipos"][j])):
+				#print(historial_clinico["sesiones_medica"][i]["arquetipos"][j][k]["clave"])
+				if accion == "encriptar":
+					historial_clinico["sesiones_medica"][i]["arquetipos"][j][k]["tipo"] = procesar(str(historial_clinico["sesiones_medica"][i]["arquetipos"][j][k]["tipo"]), accion)
+				if accion == "desencriptar":
+					historial_clinico["sesiones_medica"][i]["arquetipos"][j][k]["tipo"] = procesar(historial_clinico["sesiones_medica"][i]["arquetipos"][j][k]["tipo"], accion)
+
+				historial_clinico["sesiones_medica"][i]["arquetipos"][j][k]["clave"] = procesar(historial_clinico["sesiones_medica"][i]["arquetipos"][j][k]["clave"], accion)
+				historial_clinico["sesiones_medica"][i]["arquetipos"][j][k]["valor"] = procesar(historial_clinico["sesiones_medica"][i]["arquetipos"][j][k]["valor"], accion)
+
+	return historial_clinico
 
 def listaArquetipos():
     aArquetipos = []
@@ -42,6 +96,22 @@ def listaArquetipos():
         aArquetipos.append(arquetipo)
         arquetipo = {}
     return aArquetipos
+
+@api_view(['PUT'])
+def configurarDataBaseView(request):
+    #print(idioma) 
+    idioma_seteado = True
+    idioma = request.data["idioma"]
+    #print(idioma)
+    global arq_collection
+    if idioma == "es":
+        arq_collection = db["arquetipos_es"]
+    elif idioma == "en":
+        arq_collection = db["arquetipos"]
+    else:
+        idioma_seteado = False
+
+    return Response({"idioma_seteado": idioma_seteado})
 
 @api_view(['GET', 'POST', 'DELETE'])
 def paraListaArquetipos(request):
@@ -82,9 +152,15 @@ def pacientesAtendidosView(request, usuario):
         if request.method == 'GET':
             
             pacientes_atendidos = paciente_collection.find({ "profesionales_que_atendieron":int(usuario) }, { "nombre":1, "apellidos":1, "rut":1 })
+            
             lista_pacientes = []
             for paciente in pacientes_atendidos:
+                print(paciente)
                 paciente["_id"] = str(paciente["_id"])
+                #paciente["nombre"] = procesar(paciente["nombre"], "desencriptar")
+                paciente["nombre"] = procesar(paciente["nombre"], "desencriptar")
+                paciente["apellidos"] = procesar(paciente["apellidos"], "desencriptar")
+                #paciente["rut"] = procesar(paciente["rut"], "desencriptar")
                 lista_pacientes.append(paciente)
                 #print(paciente)
             
@@ -109,6 +185,7 @@ def pacientesView(request, rut_paciente):
     if is_token_valid:
         if request.method == 'GET':
             paciente = paciente_collection.find_one({"rut":rut_paciente})
+            paciente = encriptar_or_desencriptar(paciente, "desencriptar")
             if(paciente):
                 paciente["_id"] = str(paciente["_id"])
                 respuesta = paciente#{"rut":paciente["rut"], "nombre":paciente["nombre"], "apellidos":paciente["apellidos"]}
@@ -118,23 +195,25 @@ def pacientesView(request, rut_paciente):
             return Response(respuesta)
 
         if request.method == 'PUT':
-            #print(request.data)
             request.data.pop('_id')
-            result_update = paciente_collection.update_one({'rut': rut_paciente}, {'$set': request.data})
+            historial_clinico = encriptar_or_desencriptar(request.data, "encriptar")
+            #print(historial_clinico)
+            result_update = paciente_collection.update_one({'rut': rut_paciente}, {'$set': historial_clinico})
             return Response({"result": True})
         
         if request.method == 'POST':
-            result_post = paciente_collection.insert_one(request.data).inserted_id
+            #print(request.data)
+            historial_clinico = encriptar_or_desencriptar(request.data, "encriptar")
+            #print(historial_clinico)
+            result_post = paciente_collection.insert_one(historial_clinico).inserted_id
             return Response({"_id": str(result_post)})
         
     else:
         return Response({"detail": "Authentication credentials were not provided."})
 
-@api_view(['GET', 'PUT', 'DELETE'])
+@api_view(['GET', 'POST', 'PUT', 'DELETE'])
 def paraEditorArquetipos(request, question_id):
     if request.method == 'GET':
-
-
         try:
             arquetipoSolicitado = arq_collection.find_one({"_id": ObjectId(question_id)})
             arquetipoSolicitado["_id"]= str(arquetipoSolicitado["_id"])
@@ -144,32 +223,14 @@ def paraEditorArquetipos(request, question_id):
 
         return Response(arquetipoSolicitado)
 
+    if request.method == 'POST':
+        result_post = arq_collection.insert_one(request.data).inserted_id
+        return Response({"_id": str(result_post)})
+        
     if request.method == 'PUT':
-        #print (request.data)
-        
-        #borro el arquetipo en la db
-        """
         request.data.pop('_id')
-        result_update = arq_collection.update_one({'_id': question_id}, {'$set': request.data})
+        result_update = arq_collection.update_one({'_id': ObjectId(question_id)}, {'$set': request.data})
         return Response({"result": True})
-        """
-        request.data.pop('_id')
-        try:
-            
-            """arq_collection.remove({'_id':ObjectId(question_id)})
-            resultado = arq_collection.insert_one(request.data)"""
-            result_update = arq_collection.update_one({'_id': ObjectId(question_id)}, {'$set': request.data})
-        except:
-            """arq_collection.remove({'_id':question_id})
-            resultado = arq_collection.insert_one(request.data)"""
-            result_update = arq_collection.update_one({'_id': question_id}, {'$set': request.data})
-
-        #inserto el nuevo arquetipo
-        
-
-        #print("id con el que viene: ",question_id)
-        
-        return Response({"respuestra":True})
     
     if request.method == 'DELETE':
         try:
