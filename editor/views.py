@@ -271,11 +271,23 @@ class CustomAuthToken(ObtainAuthToken):
         token, created = Token.objects.get_or_create(user=user)
         #solu: retornar el id del profesional relacionado a ese usuario
         #obtenemos el profesional
-        profesional = ProfesionalSalud.objects.get(user_id=user.pk)
-        print (profesional.id)
+        is_admin = False
+        try:
+            profesional = ProfesionalSalud.objects.get(user_id=user.pk)
+        except:
+            is_admin = True
+        #print (profesional.id)
 
-        return Response({
-            'token': token.key,
-            'user_id': profesional.id,#user.pk,
-            'usurname': user.username
-        })
+        if is_admin:
+            return Response({
+                'token': token.key,
+                'usurname': user.username,
+                'is_admin': user.is_staff
+            })
+        else:
+            return Response({
+                'token': token.key,
+                'user_id': profesional.id,#user.pk,
+                'usurname': user.username,
+                'is_admin': user.is_staff
+            })
