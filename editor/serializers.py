@@ -6,7 +6,7 @@ from editor.models import ProfesionalSalud
 class UserSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = User
-        fields = ('id','username', 'email', 'first_name', 'last_name','password')
+        fields = ('id','username', 'email', 'first_name', 'last_name','password', 'is_staff')
         extra_kwargs = {'password' : {'write_only' : True, 'required' : True}}
     
     def create(self, validated_data):

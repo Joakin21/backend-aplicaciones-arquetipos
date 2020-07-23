@@ -249,17 +249,85 @@ class UserViewSet(viewsets.ModelViewSet):
     """
     API endpoint that allows users to be viewed or edited.
     """
-    """
-    queryset = User.objects.all().order_by('-date_joined')
-    serializer_class = UserSerializer
-    authentication_classes = (TokenAuthentication,)
-    permission_classes = (IsAuthenticated,)
-    """ 
     queryset = ProfesionalSalud.objects.all().order_by('-date_joined')
     serializer_class = ProfesionalSaludSerializer
     authentication_classes = (TokenAuthentication,)
     permission_classes = (IsAuthenticated,)
+    
+    def create(self, request):
+        try:
+            user_data = request.data["user"]
+            profesional_data = request.data
+            user = User.objects.create_user(username=user_data["username"], password=user_data["password"], first_name=user_data["first_name"], last_name=user_data["last_name"], email=user_data["username"], is_staff=False)
+            profesional = ProfesionalSalud(user=user, profesion=profesional_data["profesion"], centro_salud=profesional_data["centro_salud"])
+            user.save()
+            profesional.save()  
+            return Response({"user created":True})
+        
+        except KeyError:
+            return Response({"detail" : "Please write all the fields"})
 
+        except:
+            #verificar si existe el usuario:
+            myUser = User.objects.get(username=user_data["username"])
+            if myUser:
+                return Response({"detail" : "User already exists"})
+
+            return Response({"detail" : "Unexpected error"})
+
+    def list(self, request):
+        queryset = ProfesionalSalud.objects.all()
+        serializer = ProfesionalSaludSerializer(queryset, many=True)
+        return Response(serializer.data)
+
+    
+    def update(self, request, pk=None):
+        #ontengo los nuevos datos del usuario
+        user_data = request.data["user"]
+        profesional_data = request.data
+
+        #Obtengo el usuario que quiero modificar mediante su id
+        actual_profesional_data = ProfesionalSalud.objects.get(user_id=pk)
+        actual_user_data = User.objects.get(id=pk)
+        
+        #modifico el usuario
+        try:
+            actual_profesional_data.profesion = profesional_data["profesion"]
+            actual_profesional_data.centro_salud = profesional_data["centro_salud"]
+
+            actual_user_data.username = user_data["username"]
+            #actual_user_data.password = user_data["password"]
+            actual_user_data.set_password(user_data["password"])
+            actual_user_data.first_name = user_data["first_name"]
+            actual_user_data.last_name = user_data["last_name"]
+            actual_user_data.email = user_data["username"]
+
+            actual_profesional_data.save()
+            actual_user_data.save()
+
+            return Response({"user updated":True})
+
+        except KeyError: 
+            return Response({"detail" : "Please write all the fields"})
+
+    def destroy(self, request, pk=None):
+        try:
+            user_data = User.objects.get(id=pk).delete() #elimina en cascada
+            #profesional_data = ProfesionalSalud.objects.get(user_id=pk).delete()
+            return Response({"user deleted" : True})
+
+        except ProfesionalSalud.DoesNotExist:
+            return Response({"dastil" : "Unexpected error"})
+
+        
+
+        
+
+class AdminViewSet(viewsets.ModelViewSet):
+    queryset = User.objects.all().order_by('-date_joined')
+    serializer_class = UserSerializer
+    authentication_classes = (TokenAuthentication,)
+    permission_classes = (IsAuthenticated,)
 
 class CustomAuthToken(ObtainAuthToken):
 
@@ -271,23 +339,16 @@ class CustomAuthToken(ObtainAuthToken):
         token, created = Token.objects.get_or_create(user=user)
         #solu: retornar el id del profesional relacionado a ese usuario
         #obtenemos el profesional
-        is_admin = False
         try:
             profesional = ProfesionalSalud.objects.get(user_id=user.pk)
+            user_id = profesional.id
         except:
-            is_admin = True
+            user_id = user.id
         #print (profesional.id)
-
-        if is_admin:
-            return Response({
+            
+        return Response({
                 'token': token.key,
+                'user_id': user_id,#user.pk,
                 'usurname': user.username,
                 'is_admin': user.is_staff
-            })
-        else:
-            return Response({
-                'token': token.key,
-                'user_id': profesional.id,#user.pk,
-                'usurname': user.username,
-                'is_admin': user.is_staff
-            })
+            }) 

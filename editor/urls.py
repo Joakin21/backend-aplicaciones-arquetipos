@@ -11,6 +11,7 @@ from editor.views import CustomAuthToken
 
 router = routers.DefaultRouter()
 router.register(r'users', views.UserViewSet)
+router.register(r'adminPatientJourney', views.AdminViewSet)
 
 #user_detail = UserViewSet.as_view({'get': 'retrieve'})
 
