@@ -32,6 +32,7 @@ client = MongoClient()
 db = client['proyecto4']
 arq_collection = db["arquetipos"]#db["arquetipos_es"]
 paciente_collection = db["historial_paciente"]
+language_collection = db["application_language"]
 
 key_test = "QJhfUw_LWLPe6uEbDd808C9eUeOxUBQfj5a4ln6o8UU=".encode()
 algoritmo = Fernet(key_test)
@@ -97,21 +98,30 @@ def listaArquetipos():
         arquetipo = {}
     return aArquetipos
 
-@api_view(['PUT'])
-def configurarDataBaseView(request):
-    #print(idioma) 
-    idioma_seteado = True
-    idioma = request.data["idioma"]
-    #print(idioma)
-    global arq_collection
-    if idioma == "es":
-        arq_collection = db["arquetipos_es"]
-    elif idioma == "en":
-        arq_collection = db["arquetipos"]
-    else:
-        idioma_seteado = False
+def desencriptarListaDePacientes(pacientes):
+    pacientes_desencriptados = []
+    for paciente in pacientes:
+        paciente["_id"] = str(paciente["_id"])
+        paciente["nombre"] = procesar(paciente["nombre"], "desencriptar")
+        paciente["apellidos"] = procesar(paciente["apellidos"], "desencriptar")
+        #paciente["rut"] = procesar(paciente["rut"], "desencriptar")
+        paciente["direccion"] = procesar(paciente["direccion"], "desencriptar")
+        paciente["fecha_nacimiento"] = procesar(paciente["fecha_nacimiento"], "desencriptar")
+        paciente["ciudad"] = procesar(paciente["ciudad"], "desencriptar")
+        pacientes_desencriptados.append(paciente)
+    return pacientes_desencriptados
 
-    return Response({"idioma_seteado": idioma_seteado})
+@api_view(['GET', 'PUT'])
+def languageConfigurationView(request):
+    if request.method == 'GET':
+        lang = language_collection.find_one({})
+        return Response({"language":lang["language"]})
+
+    if request.method == 'PUT':
+        new_lang = request.data
+        update_lang = language_collection.update_one({}, {'$set': new_lang})
+        return Response({"result": True})
+
 
 @api_view(['GET', 'POST', 'DELETE'])
 def paraListaArquetipos(request):
@@ -166,10 +176,46 @@ def pacientesAtendidosView(request, usuario):
             
             return Response({"pacientes_atendidos":lista_pacientes})
     else:
+        return Response({"detail": "Authentication credentials were not provided."})        
+
+#Api view para trabajar sobre los pacientes, no se necesita especificar id
+@api_view(['GET', 'POST'])
+def pacientesView(request):
+    is_token_valid = True
+    #Se captura un error en caso de que no se envie un token o el token enviado sea incorrecto
+    try:
+        token_in_request = request.headers["Authorization"]
+        user = Token.objects.get(key=token_in_request).user
+    except:
+        is_token_valid = False
+    if is_token_valid:
+        if request.method == 'GET':
+            #paciente_collection.find({ "profesionales_que_atendieron":int(usuario) }, { "nombre":1, "apellidos":1, "rut":1 })
+            pacientes = paciente_collection.find({}, {"nombre":1, "apellidos":1, "rut":1, "direccion":1, "fecha_nacimiento":1, "ciudad":1})
+            pacientes_desencriptados = desencriptarListaDePacientes(pacientes)
+            
+            return Response(pacientes_desencriptados)
+
+        if request.method == 'POST':
+            #print(request.data)
+            
+            #verificamos si el paciente ya existe:
+            patient_exists = paciente_collection.find_one({"rut":request.data["rut"]})
+            #insertamos paciente si no existe
+            if patient_exists == None:
+                historial_clinico = encriptar_or_desencriptar(request.data, "encriptar")
+                result_post = paciente_collection.insert_one(historial_clinico).inserted_id
+                return Response({"_id": str(result_post)})
+            else:
+                return Response({"detail" : "Patient rut already exists"})
+                
+
+    else:
         return Response({"detail": "Authentication credentials were not provided."})
 
-@api_view(['GET', 'PUT', 'POST'])
-def pacientesView(request, rut_paciente):
+#Api view para trabajar sobre un paciente especifico
+@api_view(['GET', 'PUT', 'DELETE']) #['GET', 'PUT', 'POST']
+def pacienteEspecificoView(request, rut_paciente):
     #obtener token desde el header (front), obtener token del usuario logeado (back)
     #ejemplo token: 9e85bf9faf3d2c7de18e6fa069c795ca89e48dca
     
@@ -195,18 +241,25 @@ def pacientesView(request, rut_paciente):
             return Response(respuesta)
 
         if request.method == 'PUT':
-            request.data.pop('_id')
-            historial_clinico = encriptar_or_desencriptar(request.data, "encriptar")
-            #print(historial_clinico)
-            result_update = paciente_collection.update_one({'rut': rut_paciente}, {'$set': historial_clinico})
-            return Response({"result": True})
+            patient_exists = paciente_collection.find_one({"rut":request.data["rut"]})
+            #que no exista o que exista pero que coincida con el rut del patient que quiero editar
+            if patient_exists == None or (patient_exists != None and rut_paciente == request.data["rut"]): 
+                #actualizar
+                request.data.pop('_id')
+                historial_clinico = encriptar_or_desencriptar(request.data, "encriptar")
+                result_update = paciente_collection.update_one({'rut': rut_paciente}, {'$set': historial_clinico})
+                return Response({"result": True})
+            else:
+                return Response({"detail": "Patient rut already exists"}) 
         
-        if request.method == 'POST':
-            #print(request.data)
-            historial_clinico = encriptar_or_desencriptar(request.data, "encriptar")
-            #print(historial_clinico)
-            result_post = paciente_collection.insert_one(historial_clinico).inserted_id
-            return Response({"_id": str(result_post)})
+        if request.method == 'DELETE':
+             
+            delete_patient = paciente_collection.delete_one({'rut': rut_paciente})
+
+            if delete_patient.deleted_count > 0:
+                return Response({"pateient deleted": True}) 
+            else:
+                return Response({"detail": "The patient does not exist"}) 
         
     else:
         return Response({"detail": "Authentication credentials were not provided."})
@@ -262,7 +315,10 @@ class UserViewSet(viewsets.ModelViewSet):
             profesional = ProfesionalSalud(user=user, profesion=profesional_data["profesion"], centro_salud=profesional_data["centro_salud"])
             user.save()
             profesional.save()  
-            return Response({"user created":True})
+            id_user_created = User.objects.get(username=user_data["username"]).id
+            professional_created = ProfesionalSalud.objects.get(user_id = int(id_user_created))
+            serializer = ProfesionalSaludSerializer(professional_created)
+            return Response(serializer.data)
         
         except KeyError:
             return Response({"detail" : "Please write all the fields"})
@@ -282,9 +338,7 @@ class UserViewSet(viewsets.ModelViewSet):
 
     
     def update(self, request, pk=None):
-        #ontengo los nuevos datos del usuario
-        user_data = request.data["user"]
-        profesional_data = request.data
+        
 
         #Obtengo el usuario que quiero modificar mediante su id
         actual_profesional_data = ProfesionalSalud.objects.get(user_id=pk)
@@ -292,20 +346,34 @@ class UserViewSet(viewsets.ModelViewSet):
         
         #modifico el usuario
         try:
-            actual_profesional_data.profesion = profesional_data["profesion"]
-            actual_profesional_data.centro_salud = profesional_data["centro_salud"]
+            #ontengo los nuevos datos del usuario
+            user_data = request.data["user"]
+            profesional_data = request.data
 
-            actual_user_data.username = user_data["username"]
-            #actual_user_data.password = user_data["password"]
-            actual_user_data.set_password(user_data["password"])
-            actual_user_data.first_name = user_data["first_name"]
-            actual_user_data.last_name = user_data["last_name"]
-            actual_user_data.email = user_data["username"]
+            if "profesion" in profesional_data:
+                actual_profesional_data.profesion = profesional_data["profesion"]
+            if "centro_salud" in profesional_data:
+                actual_profesional_data.centro_salud = profesional_data["centro_salud"]
+
+            if "username" in user_data:
+                actual_user_data.username = user_data["username"]
+                actual_user_data.email = user_data["username"]
+            if "password" in user_data:
+                actual_user_data.set_password(user_data["password"])
+            if "first_name" in user_data:
+                actual_user_data.first_name = user_data["first_name"]
+            if "last_name" in user_data:
+                actual_user_data.last_name = user_data["last_name"]
+            
 
             actual_profesional_data.save()
             actual_user_data.save()
 
-            return Response({"user updated":True})
+            professional_updated = ProfesionalSalud.objects.get(user_id = pk)
+
+            serializer = ProfesionalSaludSerializer(professional_updated)
+            return Response(serializer.data)
+            #return Response({"user updated":True})
 
         except KeyError: 
             return Response({"detail" : "Please write all the fields"})
@@ -317,7 +385,7 @@ class UserViewSet(viewsets.ModelViewSet):
             return Response({"user deleted" : True})
 
         except ProfesionalSalud.DoesNotExist:
-            return Response({"dastil" : "Unexpected error"})
+            return Response({"detail" : "Unexpected error"})
 
         
 
