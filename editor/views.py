@@ -6,6 +6,8 @@ from rest_framework.response import Response
 
 from django.contrib.auth.models import User
 from editor.models import ProfesionalSalud
+from editor.models import ListaArquetipos
+from editor.models import Arquetipo
 
 from rest_framework import viewsets
 from rest_framework import permissions
@@ -267,6 +269,73 @@ def pacienteEspecificoView(request, rut_paciente):
     else:
         return Response({"detail": "Authentication credentials were not provided."})
 
+@api_view(['GET','POST', 'PUT'])
+def arquetiposParaUsuarioView(request, pk):
+
+    profesional_salud = ProfesionalSalud.objects.get(user_id=pk)
+    listas_arquetipos =profesional_salud.listas_arquetipos
+
+    entries = ProfesionalSalud.objects.filter(user_id=pk)
+
+    if request.method == 'GET':
+        #print(listas_arquetipos[0].arquetipos[1].nombre)
+        my_listas = []
+        for lista in listas_arquetipos:
+            my_arquetipos = []
+            nombre_lista = lista.nombre_lista
+            for arquetipos in lista.arquetipos:
+                my_arquetipos.append({"_id":arquetipos._id, "nombre":arquetipos.nombre, "tipo":arquetipos.tipo})
+            my_listas.append({"nombre_lista":nombre_lista, "arquetipos":my_arquetipos})
+
+        return Response({"listas_arquetipos" : my_listas})
+
+    if request.method == 'POST': #agregar nueva lista
+        nueva_lista = request.data
+        arquetipos = []
+        for arquetipo in nueva_lista["arquetipos"]:
+            #print(arquetipo)
+            arquetipos.append(
+                Arquetipo(_id=arquetipo['_id'], nombre=arquetipo['nombre'], tipo=arquetipo['tipo'])
+            )
+
+        lista = ListaArquetipos (
+            nombre_lista = nueva_lista["nombre_lista"],
+            arquetipos = arquetipos
+        )
+        listas_arquetipos.append(lista)
+        profesional_salud.listas_arquetipos = listas_arquetipos
+        profesional_salud.save()
+        
+        return Response({"agregado":True})
+
+    if request.method == 'PUT':
+        lista_actualizada = request.data
+        arquetipos = []
+        actualizada = False
+        
+        for i in range( len(listas_arquetipos) ):
+            if lista_actualizada['lista_a_actualizar'] == listas_arquetipos[i].nombre_lista:
+                #print(listas_arquetipos[i].nombre_lista)
+                
+                for arquetipo in lista_actualizada["arquetipos"]:
+                    arquetipos.append(
+                        Arquetipo(_id=arquetipo['_id'], nombre=arquetipo['nombre'], tipo=arquetipo['tipo'])
+                    )
+
+                lista = ListaArquetipos (
+                    nombre_lista = lista_actualizada["nombre_lista"],
+                    arquetipos = arquetipos
+                )
+                listas_arquetipos[i] = lista
+                profesional_salud.listas_arquetipos = listas_arquetipos
+                profesional_salud.save()
+
+                actualizada = True
+                
+
+
+        return Response({"actualizada":actualizada})
+
 
 @api_view(['GET', 'POST', 'PUT', 'DELETE'])
 def paraEditorArquetipos(request, question_id):
@@ -315,8 +384,31 @@ class UserViewSet(viewsets.ModelViewSet):
             profesional_data = request.data
             user = User.objects.create_user(username=user_data["username"], password=user_data["password"],
                                             first_name=user_data["first_name"], last_name=user_data["last_name"], email=user_data["username"], is_staff=False)
+            
+            """
+            arquetipo1 = Arquetipo(_id="qazwsx1", nombre="Medir presion", tipo="CLUSTER")
+            arquetipo2 = Arquetipo(_id="qazwsx2", nombre="Resfriado", tipo="OBSERVATION")
+            arquetipo3 = Arquetipo(_id="qazwsx3", nombre="Temperatura baja", tipo="CLUSTER")
+            arquetipo4 = Arquetipo(_id="qazwsx4", nombre="Bronquitis", tipo="ADMIN_ENTRY")
+            arquetipo5 = Arquetipo(_id="qazwsx5", nombre="Virus porcino", tipo="OBSERVATION")
+            
+            lista1 = ListaArquetipos ( 
+                nombre_lista="mySuperList 1", 
+                arquetipos=[arquetipo1, arquetipo2] 
+            )
+            lista2 = ListaArquetipos ( 
+                nombre_lista="mySuperList 2", 
+                arquetipos=[arquetipo3, arquetipo4, arquetipo5] 
+            )
+            """
             profesional = ProfesionalSalud(
-                user=user, profesion=profesional_data["profesion"], centro_salud=profesional_data["centro_salud"])
+                user=user, 
+                profesion=profesional_data["profesion"], 
+                centro_salud=profesional_data["centro_salud"],
+                listas_arquetipos=[]#[lista1,lista2]
+            )
+
+
             user.save()
             profesional.save()
             id_user_created = User.objects.get(

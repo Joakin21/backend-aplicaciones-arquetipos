@@ -22,6 +22,7 @@ urlpatterns = [
 	url(r'^pacientes/(?P<rut_paciente>[\w\-]+)/$', views.pacienteEspecificoView),
 	url(r'^pacientes/$', views.pacientesView),
 	url(r'^pacientes_atendidos/(?P<usuario>[\w\-]+)/$', views.pacientesAtendidosView),
-	url(r'^languageConfiguration/$', views.languageConfigurationView)
+	url(r'^languageConfiguration/$', views.languageConfigurationView),
+	url(r'^arquetipos_usuario/(?P<pk>[\w\-]+)/$', views.arquetiposParaUsuarioView),
 
 ]
