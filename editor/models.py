@@ -6,14 +6,14 @@ from django import forms
 class Arquetipo(models.Model):
     _id = models.CharField(max_length=100)
     nombre = models.CharField(max_length=100)
-    tipo = models.CharField(max_length=30)
+    tipo_arquetipo = models.CharField(max_length=30)
     class Meta:
         abstract = True
 
 class ArquetipoForm(forms.ModelForm):
     class Meta:
         model = Arquetipo
-        fields = ('_id', 'nombre', 'tipo',)
+        fields = ('_id', 'nombre', 'tipo_arquetipo',)
 
 
 class ListaArquetipos(models.Model):

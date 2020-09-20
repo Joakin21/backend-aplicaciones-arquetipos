@@ -272,10 +272,8 @@ def pacienteEspecificoView(request, rut_paciente):
 @api_view(['GET','POST', 'PUT'])
 def arquetiposParaUsuarioView(request, pk):
 
-    profesional_salud = ProfesionalSalud.objects.get(user_id=pk)
+    profesional_salud = ProfesionalSalud.objects.get(id=pk)
     listas_arquetipos =profesional_salud.listas_arquetipos
-
-    entries = ProfesionalSalud.objects.filter(user_id=pk)
 
     if request.method == 'GET':
         #print(listas_arquetipos[0].arquetipos[1].nombre)
@@ -284,7 +282,7 @@ def arquetiposParaUsuarioView(request, pk):
             my_arquetipos = []
             nombre_lista = lista.nombre_lista
             for arquetipos in lista.arquetipos:
-                my_arquetipos.append({"_id":arquetipos._id, "nombre":arquetipos.nombre, "tipo":arquetipos.tipo})
+                my_arquetipos.append({"_id":arquetipos._id, "nombre":arquetipos.nombre, "tipo_arquetipo":arquetipos.tipo_arquetipo})
             my_listas.append({"nombre_lista":nombre_lista, "arquetipos":my_arquetipos})
 
         return Response({"listas_arquetipos" : my_listas})
@@ -295,7 +293,7 @@ def arquetiposParaUsuarioView(request, pk):
         for arquetipo in nueva_lista["arquetipos"]:
             #print(arquetipo)
             arquetipos.append(
-                Arquetipo(_id=arquetipo['_id'], nombre=arquetipo['nombre'], tipo=arquetipo['tipo'])
+                Arquetipo(_id=arquetipo['_id'], nombre=arquetipo['nombre'], tipo_arquetipo=arquetipo['tipo_arquetipo'])
             )
 
         lista = ListaArquetipos (
@@ -318,8 +316,13 @@ def arquetiposParaUsuarioView(request, pk):
                 #print(listas_arquetipos[i].nombre_lista)
                 
                 for arquetipo in lista_actualizada["arquetipos"]:
+                    try:
+                        arquetipo_id = arquetipo['_id']
+                    except:
+                        arquetipo_id = arquetipo['id']
+
                     arquetipos.append(
-                        Arquetipo(_id=arquetipo['_id'], nombre=arquetipo['nombre'], tipo=arquetipo['tipo'])
+                        Arquetipo(_id=arquetipo_id, nombre=arquetipo['nombre'], tipo_arquetipo=arquetipo['tipo_arquetipo'])
                     )
 
                 lista = ListaArquetipos (
