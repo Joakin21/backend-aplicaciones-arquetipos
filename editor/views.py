@@ -269,7 +269,7 @@ def pacienteEspecificoView(request, rut_paciente):
     else:
         return Response({"detail": "Authentication credentials were not provided."})
 
-@api_view(['GET','POST', 'PUT'])
+@api_view(['GET', 'PUT'])
 def arquetiposParaUsuarioView(request, pk):
 
     profesional_salud = ProfesionalSalud.objects.get(id=pk)
@@ -286,25 +286,6 @@ def arquetiposParaUsuarioView(request, pk):
             my_listas.append({"nombre_lista":nombre_lista, "arquetipos":my_arquetipos})
 
         return Response({"listas_arquetipos" : my_listas})
-
-    if request.method == 'POST': #agregar nueva lista
-        nueva_lista = request.data
-        arquetipos = []
-        for arquetipo in nueva_lista["arquetipos"]:
-            #print(arquetipo)
-            arquetipos.append(
-                Arquetipo(_id=arquetipo['_id'], nombre=arquetipo['nombre'], tipo_arquetipo=arquetipo['tipo_arquetipo'])
-            )
-
-        lista = ListaArquetipos (
-            nombre_lista = nueva_lista["nombre_lista"],
-            arquetipos = arquetipos
-        )
-        listas_arquetipos.append(lista)
-        profesional_salud.listas_arquetipos = listas_arquetipos
-        profesional_salud.save()
-        
-        return Response({"agregado":True})
 
     if request.method == 'PUT':
         listas_arquetipos_actualizadas = request.data['listas_arquetipos']
