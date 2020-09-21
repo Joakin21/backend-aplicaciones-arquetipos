@@ -307,35 +307,29 @@ def arquetiposParaUsuarioView(request, pk):
         return Response({"agregado":True})
 
     if request.method == 'PUT':
-        lista_actualizada = request.data
-        arquetipos = []
-        actualizada = False
+        listas_arquetipos_actualizadas = request.data['listas_arquetipos']
+        actualizada = True
         
-        for i in range( len(listas_arquetipos) ):
-            if lista_actualizada['lista_a_actualizar'] == listas_arquetipos[i].nombre_lista:
-                #print(listas_arquetipos[i].nombre_lista)
-                
-                for arquetipo in lista_actualizada["arquetipos"]:
-                    try:
-                        arquetipo_id = arquetipo['_id']
-                    except:
-                        arquetipo_id = arquetipo['id']
+        my_listas = []
+        for lista in listas_arquetipos_actualizadas:
+            my_arquetipos = []
+            for arquetipos in lista['arquetipos']:
+                try:
+                    arquetipo_id = arquetipos['_id']
+                except:
+                    arquetipo_id = arquetipos['id']
 
-                    arquetipos.append(
-                        Arquetipo(_id=arquetipo_id, nombre=arquetipo['nombre'], tipo_arquetipo=arquetipo['tipo_arquetipo'])
-                    )
-
-                lista = ListaArquetipos (
-                    nombre_lista = lista_actualizada["nombre_lista"],
-                    arquetipos = arquetipos
+                my_arquetipos.append(
+                    Arquetipo(_id=arquetipo_id, nombre=arquetipos['nombre'], tipo_arquetipo=arquetipos['tipo_arquetipo'])
                 )
-                listas_arquetipos[i] = lista
-                profesional_salud.listas_arquetipos = listas_arquetipos
-                profesional_salud.save()
-
-                actualizada = True
-                
-
+            lista = ListaArquetipos (
+                nombre_lista = lista['nombre_lista'],
+                arquetipos = my_arquetipos
+            )
+            my_listas.append(lista)
+        
+        profesional_salud.listas_arquetipos = my_listas
+        profesional_salud.save()
 
         return Response({"actualizada":actualizada})
 
