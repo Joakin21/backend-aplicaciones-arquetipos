@@ -171,18 +171,19 @@ def pacientesAtendidosView(request, usuario):
         if request.method == 'GET':
 
             pacientes_atendidos = paciente_collection.find(
-                {"profesionales_que_atendieron": int(usuario)}, {"nombre": 1, "apellidos": 1, "rut": 1})
+                {"profesionales_que_atendieron.user_id": int(usuario)}, {"nombre": 1, "apellidos": 1, "rut": 1, "profesionales_que_atendieron":1})
 
             lista_pacientes = []
             for paciente in pacientes_atendidos:
-                print(paciente)
+
                 paciente["_id"] = str(paciente["_id"])
-                #paciente["nombre"] = procesar(paciente["nombre"], "desencriptar")
-                paciente["nombre"] = procesar(
-                    paciente["nombre"], "desencriptar")
-                paciente["apellidos"] = procesar(
-                    paciente["apellidos"], "desencriptar")
-                #paciente["rut"] = procesar(paciente["rut"], "desencriptar")
+                paciente["nombre"] = procesar(paciente["nombre"], "desencriptar")
+                paciente["apellidos"] = procesar(paciente["apellidos"], "desencriptar")
+
+                for atencion in paciente["profesionales_que_atendieron"]:
+                    if int(usuario) == atencion["user_id"]:
+                        paciente["fecha"] = atencion["fecha"]
+
                 lista_pacientes.append(paciente)
 
             return Response({"pacientes_atendidos": lista_pacientes})
