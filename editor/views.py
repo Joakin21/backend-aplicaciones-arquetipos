@@ -73,6 +73,12 @@ def encriptar_or_desencriptar(historial_clinico, accion):
             historial_clinico["sesiones_medica"][i]["profesion"], accion)
         historial_clinico["sesiones_medica"][i]["centro_salud"] = procesar(
             historial_clinico["sesiones_medica"][i]["centro_salud"], accion)
+        if accion == "encriptar":
+            historial_clinico["sesiones_medica"][i]["user_id"] = procesar(
+                str(historial_clinico["sesiones_medica"][i]["user_id"]), accion)
+        else:
+            historial_clinico["sesiones_medica"][i]["user_id"] = procesar(
+                historial_clinico["sesiones_medica"][i]["user_id"], accion)
         # Arquetipos:
         for j in range(len(historial_clinico["sesiones_medica"][i]["arquetipos"])):
             for k in range(len(historial_clinico["sesiones_medica"][i]["arquetipos"][j])):
