@@ -171,7 +171,7 @@ def pacientesAtendidosView(request, usuario):
         if request.method == 'GET':
 
             pacientes_atendidos = paciente_collection.find(
-                {"profesionales_que_atendieron.user_id": int(usuario)}, {"nombre": 1, "apellidos": 1, "rut": 1, "profesionales_que_atendieron":1})
+                {"profesionales_que_atendieron.user_id": int(usuario)}, {"nombre": 1, "apellidos": 1, "rut": 1, "es_atendido_ahora": 1, "profesionales_que_atendieron":1})
 
             lista_pacientes = []
             for paciente in pacientes_atendidos:
@@ -275,6 +275,25 @@ def pacienteEspecificoView(request, rut_paciente):
 
     else:
         return Response({"detail": "Authentication credentials were not provided."})
+
+
+@api_view(['PUT']) 
+def setEsAtendidoAhoraView(request, rut_paciente):
+    is_token_valid = True
+    try:
+        token_in_request = request.headers["Authorization"]
+        user = Token.objects.get(key=token_in_request).user
+    except:
+        is_token_valid = False
+    if is_token_valid:
+
+        if request.method == 'PUT':
+            es_atendido_ahora = request.data['es_atendido_ahora']
+            result_update = paciente_collection.update_one(
+                {'rut': rut_paciente}, {'$set': { "es_atendido_ahora": es_atendido_ahora }}
+            )
+
+            return Response({"result": True})
 
 @api_view(['GET', 'PUT'])
 def arquetiposParaUsuarioView(request, pk):

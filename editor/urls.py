@@ -20,6 +20,7 @@ urlpatterns = [
 	url(r'^', include(router.urls)),
 	url(r'^auth/', CustomAuthToken.as_view()),
 	url(r'^pacientes/(?P<rut_paciente>[\w\-]+)/$', views.pacienteEspecificoView),
+	url(r'^setEsAtendidoAhora/(?P<rut_paciente>[\w\-]+)/$', views.setEsAtendidoAhoraView),
 	url(r'^pacientes/$', views.pacientesView),
 	url(r'^pacientes_atendidos/(?P<usuario>[\w\-]+)/$', views.pacientesAtendidosView),
 	url(r'^languageConfiguration/$', views.languageConfigurationView),
