@@ -105,6 +105,14 @@ def encriptar_or_desencriptar(historial_clinico, accion):
 
     return historial_clinico
 
+# Se captura un error en caso de que no se envie un token o el token enviado sea incorrecto
+def tokenDeSesionValido(autorizacion):
+    is_token_valid = True
+    try:
+        user = Token.objects.get(key=autorizacion).user
+    except:
+        is_token_valid = False 
+    return is_token_valid
 
 def listaArquetipos():
     aArquetipos = []
@@ -175,142 +183,114 @@ def paraListaArquetipos(request):
 
 @api_view(['GET'])
 def pacientesAtendidosView(request, usuario):
-    is_token_valid = True
-    # Se captura un error en caso de que no se envie un token o el token enviado sea incorrecto
-    try:
-        token_in_request = request.headers["Authorization"]
-        user = Token.objects.get(key=token_in_request).user
-    except:
-        is_token_valid = False
-    if is_token_valid:
-        if request.method == 'GET':
 
-            pacientes_atendidos = paciente_collection.find(
-                {"profesionales_que_atendieron.user_id": int(usuario)}, {"nombre": 1, "apellidos": 1, "rut": 1, "es_atendido_ahora": 1, "profesionales_que_atendieron":1})
-
-            lista_pacientes = []
-            for paciente in pacientes_atendidos:
-
-                paciente["_id"] = str(paciente["_id"])
-                paciente["nombre"] = procesar(paciente["nombre"], "desencriptar")
-                paciente["apellidos"] = procesar(paciente["apellidos"], "desencriptar")
-
-                for atencion in paciente["profesionales_que_atendieron"]:
-                    if int(usuario) == atencion["user_id"]:
-                        paciente["fecha"] = atencion["fecha"]
-
-                lista_pacientes.append(paciente)
-            
-            lista_pacientes.sort(key=lambda date: datetime.strptime(date['fecha'], "%d-%b-%y"), reverse=True)
-
-            return Response({"pacientes_atendidos": lista_pacientes})
-    else:
+    if not tokenDeSesionValido(request.headers["Authorization"]):
         return Response({"detail": "Authentication credentials were not provided."})
+
+    if request.method == 'GET':
+
+        pacientes_atendidos = paciente_collection.find(
+            {"profesionales_que_atendieron.user_id": int(usuario)}, {"nombre": 1, "apellidos": 1, "rut": 1, "es_atendido_ahora": 1, "profesionales_que_atendieron":1})
+
+        lista_pacientes = []
+        for paciente in pacientes_atendidos:
+
+            paciente["_id"] = str(paciente["_id"])
+            paciente["nombre"] = procesar(paciente["nombre"], "desencriptar")
+            paciente["apellidos"] = procesar(paciente["apellidos"], "desencriptar")
+
+            for atencion in paciente["profesionales_que_atendieron"]:
+                if int(usuario) == atencion["user_id"]:
+                    paciente["fecha"] = atencion["fecha"]
+
+            lista_pacientes.append(paciente)
+        lista_pacientes.sort(key=lambda date: datetime.strptime(date['fecha'], "%d-%b-%y"), reverse=True)
+        
+        return Response({"pacientes_atendidos": lista_pacientes})
 
 # Api view para trabajar sobre los pacientes, no se necesita especificar id
 @api_view(['GET', 'POST'])
 def pacientesView(request):
-    is_token_valid = True
-    # Se captura un error en caso de que no se envie un token o el token enviado sea incorrecto
-    try:
-        token_in_request = request.headers["Authorization"]
-        user = Token.objects.get(key=token_in_request).user
-    except:
-        is_token_valid = False
-    if is_token_valid:
-        if request.method == 'GET':
-            #paciente_collection.find({ "profesionales_que_atendieron":int(usuario) }, { "nombre":1, "apellidos":1, "rut":1 })
-            pacientes = paciente_collection.find(
-                {}, {"nombre": 1, "apellidos": 1, "rut": 1, "direccion": 1, "fecha_nacimiento": 1, "ciudad": 1})
-            pacientes_desencriptados = desencriptarListaDePacientes(pacientes)
-
-            return Response(pacientes_desencriptados)
-
-        if request.method == 'POST':
-            # verificamos si el paciente ya existe:
-            patient_exists = paciente_collection.find_one(
-                {"rut": request.data["rut"]})
-            # insertamos paciente si no existe
-            if patient_exists == None:
-                historial_clinico = encriptar_or_desencriptar(
-                    request.data, "encriptar")
-                result_post = paciente_collection.insert_one(
-                    historial_clinico).inserted_id
-                return Response({"_id": str(result_post)})
-            else:
-                return Response({"detail": "Patient rut already exists"})
-
-    else:
+    if not tokenDeSesionValido(request.headers["Authorization"]):
         return Response({"detail": "Authentication credentials were not provided."})
+    
+    if request.method == 'GET':
+        #paciente_collection.find({ "profesionales_que_atendieron":int(usuario) }, { "nombre":1, "apellidos":1, "rut":1 })
+        pacientes = paciente_collection.find(
+            {}, {"nombre": 1, "apellidos": 1, "rut": 1, "direccion": 1, "fecha_nacimiento": 1, "ciudad": 1})
+        pacientes_desencriptados = desencriptarListaDePacientes(pacientes)
+
+        return Response(pacientes_desencriptados)
+
+    if request.method == 'POST':
+        # verificamos si el paciente ya existe:
+        patient_exists = paciente_collection.find_one(
+            {"rut": request.data["rut"]})
+        # insertamos paciente si no existe
+        if patient_exists == None:
+            historial_clinico = encriptar_or_desencriptar(
+                request.data, "encriptar")
+            result_post = paciente_collection.insert_one(
+                historial_clinico).inserted_id
+            return Response({"_id": str(result_post)})
+        else:
+            return Response({"detail": "Patient rut already exists"})
+
 
 # Api view para trabajar sobre un paciente especifico
 @api_view(['GET', 'PUT', 'DELETE']) 
 def pacienteEspecificoView(request, rut_paciente):
-    is_token_valid = True
-    # Se captura un error en caso de que no se envie un token o el token enviado sea incorrecto
-    try:
-        token_in_request = request.headers["Authorization"]
-        user = Token.objects.get(key=token_in_request).user
-    except:
-        is_token_valid = False
-    if is_token_valid:
-        if request.method == 'GET':
-            paciente = paciente_collection.find_one({"rut": rut_paciente})
-            paciente = encriptar_or_desencriptar(paciente, "desencriptar")
-            if(paciente):
-                paciente["_id"] = str(paciente["_id"])
-                respuesta = paciente
-            else:
-                respuesta = {"detail": "Patient not found"}
-
-            return Response(respuesta)
-
-        if request.method == 'PUT':
-            patient_exists = paciente_collection.find_one(
-                {"rut": request.data["rut"]})
-            # que no exista o que exista pero que coincida con el rut del patient que quiero editar
-            if patient_exists == None or (patient_exists != None and rut_paciente == request.data["rut"]):
-                # actualizar
-                request.data.pop('_id')
-                historial_clinico = encriptar_or_desencriptar(
-                    request.data, "encriptar")
-                result_update = paciente_collection.update_one(
-                    {'rut': rut_paciente}, {'$set': historial_clinico})
-                return Response({"result": True})
-            else:
-                return Response({"detail": "Patient rut already exists"})
-
-        if request.method == 'DELETE':
-
-            delete_patient = paciente_collection.delete_one(
-                {'rut': rut_paciente})
-
-            if delete_patient.deleted_count > 0:
-                return Response({"pateient deleted": True})
-            else:
-                return Response({"detail": "The patient does not exist"})
-
-    else:
+    if not tokenDeSesionValido(request.headers["Authorization"]):
         return Response({"detail": "Authentication credentials were not provided."})
 
+    if request.method == 'GET':
+        paciente = paciente_collection.find_one({"rut": rut_paciente})
+        paciente = encriptar_or_desencriptar(paciente, "desencriptar")
+        if(paciente):
+            paciente["_id"] = str(paciente["_id"])
+            respuesta = paciente
+        else:
+            respuesta = {"detail": "Patient not found"}
+
+        return Response(respuesta)
+
+    if request.method == 'PUT':
+        patient_exists = paciente_collection.find_one(
+            {"rut": request.data["rut"]})
+        # que no exista o que exista pero que coincida con el rut del patient que quiero editar
+        if patient_exists == None or (patient_exists != None and rut_paciente == request.data["rut"]):
+            # actualizar
+            request.data.pop('_id')
+            historial_clinico = encriptar_or_desencriptar(
+                request.data, "encriptar")
+            result_update = paciente_collection.update_one(
+                {'rut': rut_paciente}, {'$set': historial_clinico})
+            return Response({"result": True})
+        else:
+            return Response({"detail": "Patient rut already exists"})
+
+    if request.method == 'DELETE':
+
+        delete_patient = paciente_collection.delete_one(
+            {'rut': rut_paciente})
+
+        if delete_patient.deleted_count > 0:
+            return Response({"pateient deleted": True})
+        else:
+            return Response({"detail": "The patient does not exist"})
 
 @api_view(['PUT']) 
 def setEsAtendidoAhoraView(request, rut_paciente):
-    is_token_valid = True
-    try:
-        token_in_request = request.headers["Authorization"]
-        user = Token.objects.get(key=token_in_request).user
-    except:
-        is_token_valid = False
-    if is_token_valid:
+    if not tokenDeSesionValido(request.headers["Authorization"]):
+        return Response({"detail": "Authentication credentials were not provided."})
+        
+    if request.method == 'PUT':
+        es_atendido_ahora = request.data['es_atendido_ahora']
+        result_update = paciente_collection.update_one(
+            {'rut': rut_paciente}, {'$set': { "es_atendido_ahora": es_atendido_ahora }}
+        )
 
-        if request.method == 'PUT':
-            es_atendido_ahora = request.data['es_atendido_ahora']
-            result_update = paciente_collection.update_one(
-                {'rut': rut_paciente}, {'$set': { "es_atendido_ahora": es_atendido_ahora }}
-            )
-
-            return Response({"result": True})
+        return Response({"result": True})
 
 @api_view(['GET', 'PUT'])
 def arquetiposParaUsuarioView(request, pk):
