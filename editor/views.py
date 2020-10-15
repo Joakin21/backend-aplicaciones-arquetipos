@@ -28,11 +28,20 @@ from pymongo import MongoClient
 from bson.objectid import ObjectId
 import pprint
 
+from datetime import datetime
+
 client = MongoClient()
 db = client['proyecto4']
-arq_collection = db["arquetipos"]  # db["arquetipos_es"]
+
 paciente_collection = db["historial_paciente"]
+
 language_collection = db["application_language"]
+lang = language_collection.find_one({})
+
+if lang['language'] == 'es':
+    arq_collection = db["arquetipos_es"]
+else:
+    arq_collection = db["arquetipos"]  
 
 key_test = "QJhfUw_LWLPe6uEbDd808C9eUeOxUBQfj5a4ln6o8UU=".encode()
 algoritmo = Fernet(key_test)
@@ -134,6 +143,12 @@ def languageConfigurationView(request):
     if request.method == 'PUT':
         new_lang = request.data
         update_lang = language_collection.update_one({}, {'$set': new_lang})
+        global arq_collection
+        if new_lang['language'] == "es":
+            arq_collection = db["arquetipos_es"]
+        else: #Arquetipos en ingles
+            arq_collection = db["arquetipos"]
+        #arq_collection = db["arquetipos"]  # db["arquetipos_es"]
         return Response({"result": True})
 
 
@@ -185,6 +200,8 @@ def pacientesAtendidosView(request, usuario):
                         paciente["fecha"] = atencion["fecha"]
 
                 lista_pacientes.append(paciente)
+            
+            lista_pacientes.sort(key=lambda date: datetime.strptime(date['fecha'], "%d-%b-%y"), reverse=True)
 
             return Response({"pacientes_atendidos": lista_pacientes})
     else:
@@ -443,7 +460,7 @@ class UserViewSet(viewsets.ModelViewSet):
         # Obtengo el usuario que quiero modificar mediante su id
         actual_profesional_data = ProfesionalSalud.objects.get(user_id=pk)
         actual_user_data = User.objects.get(id=pk)
-
+        
         # modifico el usuario
         try:
             # ontengo los nuevos datos del usuario
@@ -456,17 +473,25 @@ class UserViewSet(viewsets.ModelViewSet):
                 actual_profesional_data.centro_salud = profesional_data["centro_salud"]
 
             if "username" in user_data:
-                actual_user_data.username = user_data["username"]
+  
                 actual_user_data.email = user_data["username"]
+                actual_user_data.username = user_data["username"]
+
+                
             if "password" in user_data:
                 actual_user_data.set_password(user_data["password"])
             if "first_name" in user_data:
                 actual_user_data.first_name = user_data["first_name"]
             if "last_name" in user_data:
                 actual_user_data.last_name = user_data["last_name"]
-
+            
+            try:
+                actual_user_data.save()
+            except:
+                return Response({"detail": "User already exists"})
+                
             actual_profesional_data.save()
-            actual_user_data.save()
+            
 
             professional_updated = ProfesionalSalud.objects.get(user_id=pk)
 
