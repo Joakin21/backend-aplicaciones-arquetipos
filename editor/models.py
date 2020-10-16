@@ -22,6 +22,8 @@ class ListaArquetipos(models.Model):
         model_container=Arquetipo,
         model_form_class=ArquetipoForm
     )
+    idioma = models.CharField(max_length=50)
+    
     class Meta:
         abstract = True
     objects = models.DjongoManager()
@@ -29,7 +31,7 @@ class ListaArquetipos(models.Model):
 class ListaArquetiposForm(forms.ModelForm):
     class Meta:
         model = ListaArquetipos
-        fields = ('nombre_lista', 'arquetipos',)
+        fields = ('nombre_lista', 'arquetipos', 'idioma')
 
 class ProfesionalSalud(models.Model):
 

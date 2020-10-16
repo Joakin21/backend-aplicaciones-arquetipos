@@ -304,9 +304,10 @@ def arquetiposParaUsuarioView(request, pk):
         for lista in listas_arquetipos:
             my_arquetipos = []
             nombre_lista = lista.nombre_lista
+            idioma = lista.idioma
             for arquetipos in lista.arquetipos:
                 my_arquetipos.append({"_id":arquetipos._id, "nombre":arquetipos.nombre, "tipo_arquetipo":arquetipos.tipo_arquetipo})
-            my_listas.append({"nombre_lista":nombre_lista, "arquetipos":my_arquetipos})
+            my_listas.append({"nombre_lista":nombre_lista, "arquetipos":my_arquetipos, "idioma":idioma})
 
         return Response({"listas_arquetipos" : my_listas})
 
@@ -328,7 +329,8 @@ def arquetiposParaUsuarioView(request, pk):
                 )
             lista = ListaArquetipos (
                 nombre_lista = lista['nombre_lista'],
-                arquetipos = my_arquetipos
+                arquetipos = my_arquetipos,
+                idioma = lista['idioma']
             )
             my_listas.append(lista)
         
