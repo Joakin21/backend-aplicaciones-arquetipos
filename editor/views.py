@@ -205,8 +205,9 @@ def pacientesAtendidosView(request, usuario):
 
             lista_pacientes.append(paciente)
         lista_pacientes.sort(key=lambda date: datetime.strptime(date['fecha'], "%d-%b-%y"), reverse=True)
-        
-        return Response({"pacientes_atendidos": lista_pacientes})
+        #print(lista_pacientes[0:8])
+        #print(len (lista_pacientes))
+        return Response({"pacientes_atendidos": lista_pacientes[0:7]})
 
 # Api view para trabajar sobre los pacientes, no se necesita especificar id
 @api_view(['GET', 'POST'])
