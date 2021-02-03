@@ -33,6 +33,20 @@ class ListaArquetiposForm(forms.ModelForm):
         model = ListaArquetipos
         fields = ('nombre_lista', 'arquetipos', 'idioma')
 
+#------------------------------------------------------------------
+
+class UltimosPacientesAtendidos(models.Model):
+    rut = models.CharField(max_length=50)
+    class Meta:
+        abstract = True
+    objects = models.DjongoManager()
+
+class UltimosPacientesAtendidosForm(forms.ModelForm):
+    class Meta:
+        model = UltimosPacientesAtendidos
+        fields = ('rut',)
+
+
 class ProfesionalSalud(models.Model):
 
     user = models.OneToOneField(User, on_delete=models.CASCADE)
@@ -42,6 +56,10 @@ class ProfesionalSalud(models.Model):
     listas_arquetipos = models.ArrayField(
         model_container=ListaArquetipos,
         model_form_class=ListaArquetiposForm
+    )
+    ultimos_pacientes_atendidos = models.ArrayField(
+        model_container=UltimosPacientesAtendidos,
+        model_form_class=UltimosPacientesAtendidosForm
     )
 
     objects = models.DjongoManager()

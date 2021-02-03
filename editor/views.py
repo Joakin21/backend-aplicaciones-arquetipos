@@ -409,7 +409,8 @@ class UserViewSet(viewsets.ModelViewSet):
                 user=user, 
                 profesion=profesional_data["profesion"], 
                 centro_salud=profesional_data["centro_salud"],
-                listas_arquetipos=[]#[lista1,lista2]
+                listas_arquetipos=[],#[lista1,lista2]
+                ultimos_pacientes_atendidos=[]
             )
 
 
