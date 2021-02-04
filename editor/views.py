@@ -8,6 +8,7 @@ from django.contrib.auth.models import User
 from editor.models import ProfesionalSalud
 from editor.models import ListaArquetipos
 from editor.models import Arquetipo
+from editor.models import UltimosPacientesAtendidos
 
 from rest_framework import viewsets
 from rest_framework import permissions
@@ -181,34 +182,6 @@ def paraListaArquetipos(request):
 
         return Response({"eliminar": True})
 
-@api_view(['GET'])
-def pacientesAtendidosView(request, usuario):
-
-    if not tokenDeSesionValido(request.headers["Authorization"]):
-        return Response({"detail": "Authentication credentials were not provided."})
-
-    if request.method == 'GET':
-
-        pacientes_atendidos = paciente_collection.find(
-            {"profesionales_que_atendieron.user_id": int(usuario)}, {"nombre": 1, "apellidos": 1, "rut": 1, "es_atendido_ahora": 1, "profesionales_que_atendieron":1})
-
-        lista_pacientes = []
-        for paciente in pacientes_atendidos:
-
-            paciente["_id"] = str(paciente["_id"])
-            paciente["nombre"] = procesar(paciente["nombre"], "desencriptar")
-            paciente["apellidos"] = procesar(paciente["apellidos"], "desencriptar")
-
-            for atencion in paciente["profesionales_que_atendieron"]:
-                if int(usuario) == atencion["user_id"]:
-                    paciente["fecha"] = atencion["fecha"]
-
-            lista_pacientes.append(paciente)
-        lista_pacientes.sort(key=lambda date: datetime.strptime(date['fecha'], "%d-%b-%y"), reverse=True)
-        #print(lista_pacientes[0:8])
-        #print(len (lista_pacientes))
-        return Response({"pacientes_atendidos": lista_pacientes[0:7]})
-
 # Api view para trabajar sobre los pacientes, no se necesita especificar id
 @api_view(['GET', 'POST'])
 def pacientesView(request):
@@ -292,6 +265,37 @@ def setEsAtendidoAhoraView(request, rut_paciente):
         )
 
         return Response({"result": True})
+
+@api_view(['GET', 'PUT'])
+def pacientesAtendidosView(request, usuario):
+
+    if not tokenDeSesionValido(request.headers["Authorization"]):
+        return Response({"detail": "Authentication credentials were not provided."})
+    
+    profesional_salud = ProfesionalSalud.objects.get(id=usuario)
+    ultimos_pacientes_atendidos = profesional_salud.ultimos_pacientes_atendidos
+
+    if request.method == 'GET':
+        ulimos_pacientes_aux = []
+        for lista in ultimos_pacientes_atendidos:
+
+            ulimos_pacientes_aux.append({"rut" : lista.rut})
+
+        return Response({"ultimos_pacientes_atendidos": ulimos_pacientes_aux})
+
+    if request.method == 'PUT':
+        ultimos_pacientes_atendidos_actualizados = request.data['ultimos_pacientes_atendidos']
+        #print(ultimos_pacientes_atendidos_actualizados)
+        my_listas = []
+        for lista in ultimos_pacientes_atendidos_actualizados:
+
+            my_listas.append(UltimosPacientesAtendidos(rut = lista['rut']))
+
+        profesional_salud.ultimos_pacientes_atendidos = my_listas
+        profesional_salud.save()
+
+        return Response({"actualizado" : True})
+
 
 @api_view(['GET', 'PUT'])
 def arquetiposParaUsuarioView(request, pk):
