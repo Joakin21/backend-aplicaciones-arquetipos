@@ -37,6 +37,7 @@ class ListaArquetiposForm(forms.ModelForm):
 
 class UltimosPacientesAtendidos(models.Model):
     rut = models.CharField(max_length=50)
+    fecha = models.CharField(max_length=50)
     class Meta:
         abstract = True
     objects = models.DjongoManager()
@@ -44,7 +45,7 @@ class UltimosPacientesAtendidos(models.Model):
 class UltimosPacientesAtendidosForm(forms.ModelForm):
     class Meta:
         model = UltimosPacientesAtendidos
-        fields = ('rut',)
+        fields = ('rut','fecha',)
 
 
 class ProfesionalSalud(models.Model):

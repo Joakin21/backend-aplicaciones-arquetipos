@@ -272,14 +272,25 @@ def pacientesAtendidosView(request, usuario):
     if not tokenDeSesionValido(request.headers["Authorization"]):
         return Response({"detail": "Authentication credentials were not provided."})
     
-    profesional_salud = ProfesionalSalud.objects.get(id=usuario)
+    profesional_salud = ProfesionalSalud.objects.get(
+        user_id=usuario)
     ultimos_pacientes_atendidos = profesional_salud.ultimos_pacientes_atendidos
 
     if request.method == 'GET':
         ulimos_pacientes_aux = []
         for lista in ultimos_pacientes_atendidos:
+            #ulimos_pacientes_aux.append({"rut" : lista.rut})
 
-            ulimos_pacientes_aux.append({"rut" : lista.rut})
+            paciente = paciente_collection.find_one({"rut": lista.rut})
+            paciente = encriptar_or_desencriptar(paciente, "desencriptar")
+            if(paciente):
+                paciente["_id"] = str(paciente["_id"])
+                paciente["fecha"] = lista.fecha
+                paciente.pop('profesionales_que_atendieron')
+                paciente.pop('sesiones_medica')
+
+                ulimos_pacientes_aux.append(paciente)
+                ##print(paciente)
 
         return Response({"ultimos_pacientes_atendidos": ulimos_pacientes_aux})
 
@@ -289,7 +300,7 @@ def pacientesAtendidosView(request, usuario):
         my_listas = []
         for lista in ultimos_pacientes_atendidos_actualizados:
 
-            my_listas.append(UltimosPacientesAtendidos(rut = lista['rut']))
+            my_listas.append(UltimosPacientesAtendidos(rut = lista['rut'], fecha = lista['fecha']))
 
         profesional_salud.ultimos_pacientes_atendidos = my_listas
         profesional_salud.save()
