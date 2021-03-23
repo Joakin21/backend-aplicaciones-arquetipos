@@ -142,6 +142,10 @@ def desencriptarListaDePacientes(pacientes):
         pacientes_desencriptados.append(paciente)
     return pacientes_desencriptados
 
+def getPatients(skip):
+    pacientes = paciente_collection.find({}, {"nombre": 1, "apellidos": 1, "rut": 1, "direccion": 1, "fecha_nacimiento": 1, "ciudad": 1}).skip(skip).limit(10)
+    pacientes_desencriptados = desencriptarListaDePacientes(pacientes)
+    return pacientes_desencriptados
 
 @api_view(['GET', 'PUT'])
 def languageConfigurationView(request):
@@ -189,12 +193,8 @@ def pacientesView(request):
         return Response({"detail": "Authentication credentials were not provided."})
     
     if request.method == 'GET':
-        #paciente_collection.find({ "profesionales_que_atendieron":int(usuario) }, { "nombre":1, "apellidos":1, "rut":1 })
-        pacientes = paciente_collection.find(
-            {}, {"nombre": 1, "apellidos": 1, "rut": 1, "direccion": 1, "fecha_nacimiento": 1, "ciudad": 1})
-        pacientes_desencriptados = desencriptarListaDePacientes(pacientes)
 
-        return Response(pacientes_desencriptados)
+        return Response(getPatients(0))
 
     if request.method == 'POST':
         # verificamos si el paciente ya existe:
@@ -209,6 +209,11 @@ def pacientesView(request):
             return Response({"_id": str(result_post)})
         else:
             return Response({"detail": "Patient rut already exists"})
+
+@api_view(['POST'])
+def getSkipPatientsView(request, skip):
+    if request.method == 'POST':
+        return Response(getPatients(int(skip)))
 
 
 # Api view para trabajar sobre un paciente especifico
