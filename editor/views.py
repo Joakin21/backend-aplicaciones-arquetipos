@@ -35,6 +35,7 @@ client = MongoClient()
 db = client['proyecto4']
 
 paciente_collection = db["historial_paciente"]
+profesionales_salud_collection = db["editor_profesionalsalud"]
 
 language_collection = db["application_language"]
 lang = language_collection.find_one({})
@@ -197,6 +198,7 @@ def pacientesView(request):
         return Response(getPatients(0))
 
     if request.method == 'POST':
+        """
         # verificamos si el paciente ya existe:
         patient_exists = paciente_collection.find_one(
             {"rut": request.data["rut"]})
@@ -209,12 +211,27 @@ def pacientesView(request):
             return Response({"_id": str(result_post)})
         else:
             return Response({"detail": "Patient rut already exists"})
+        """
+        historial_clinico = encriptar_or_desencriptar(request.data, "encriptar")
+        result_post = paciente_collection.insert_one(historial_clinico).inserted_id
+        return Response({"_id": str(result_post)})
+
+
 
 @api_view(['POST'])
 def getSkipPatientsView(request, skip):
     if request.method == 'POST':
         return Response(getPatients(int(skip)))
 
+@api_view(['GET'])
+def getAmountDocuments(request, collection_name):
+    if request.method == 'GET':
+        amount_documents = 0
+        if collection_name == "historial_paciente":
+            amount_documents = paciente_collection.count({})
+        elif collection_name == "editor_profesionalsalud":
+            amount_documents = profesionales_salud_collection.count({})
+        return Response({"amount_documents" : amount_documents})
 
 # Api view para trabajar sobre un paciente especifico
 @api_view(['GET', 'PUT', 'DELETE']) 
