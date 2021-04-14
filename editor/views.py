@@ -308,7 +308,6 @@ def pacientesAtendidosView(request, usuario):
             if(paciente):
                 paciente["_id"] = str(paciente["_id"])
                 paciente["fecha"] = lista.fecha
-                paciente.pop('profesionales_que_atendieron')
                 paciente.pop('sesiones_medica')
 
                 ulimos_pacientes_aux.append(paciente)
