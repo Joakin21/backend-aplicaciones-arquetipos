@@ -144,7 +144,7 @@ def desencriptarListaDePacientes(pacientes):
     return pacientes_desencriptados
 
 def getPatients(skip):
-    pacientes = paciente_collection.find({}, {"nombre": 1, "apellidos": 1, "rut": 1, "direccion": 1, "fecha_nacimiento": 1, "ciudad": 1}).skip(skip).limit(10)
+    pacientes = paciente_collection.find({"activo":True}, {"nombre": 1, "apellidos": 1, "rut": 1, "direccion": 1, "fecha_nacimiento": 1, "ciudad": 1}).skip(skip).limit(10)
     pacientes_desencriptados = desencriptarListaDePacientes(pacientes)
     return pacientes_desencriptados
 
@@ -228,7 +228,7 @@ def getAmountDocuments(request, collection_name):
     if request.method == 'GET':
         amount_documents = 0
         if collection_name == "historial_paciente":
-            amount_documents = paciente_collection.count({})
+            amount_documents = paciente_collection.count({"activo":True})
         elif collection_name == "editor_profesionalsalud":
             amount_documents = profesionales_salud_collection.count({})
         return Response({"amount_documents" : amount_documents})
@@ -240,7 +240,7 @@ def pacienteEspecificoView(request, rut_paciente):
         return Response({"detail": "Authentication credentials were not provided."})
 
     if request.method == 'GET':
-        paciente = paciente_collection.find_one({"rut": rut_paciente})
+        paciente = paciente_collection.find_one({"rut": rut_paciente, "activo":True})
         paciente = encriptar_or_desencriptar(paciente, "desencriptar")
         if(paciente):
             paciente["_id"] = str(paciente["_id"])
@@ -303,9 +303,9 @@ def pacientesAtendidosView(request, usuario):
         for lista in ultimos_pacientes_atendidos:
             #ulimos_pacientes_aux.append({"rut" : lista.rut})
 
-            paciente = paciente_collection.find_one({"rut": lista.rut})
-            paciente = encriptar_or_desencriptar(paciente, "desencriptar")
+            paciente = paciente_collection.find_one({"rut": lista.rut, "activo":True})
             if(paciente):
+                paciente = encriptar_or_desencriptar(paciente, "desencriptar")
                 paciente["_id"] = str(paciente["_id"])
                 paciente["fecha"] = lista.fecha
                 paciente.pop('sesiones_medica')
