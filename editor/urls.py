@@ -26,6 +26,7 @@ urlpatterns = [
 	url(r'^pacientes_atendidos/(?P<usuario>[\w\-]+)/$', views.pacientesAtendidosView),
 
 	url(r'^setPatientStatus/$', views.setPatientStatusView),
+	url(r'^adminSearch/$', views.adminSearchView),
 	
 	url(r'^amountDocuments/$', views.getAmountDocuments),
 	url(r'^languageConfiguration/$', views.languageConfigurationView),

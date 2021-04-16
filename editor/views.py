@@ -233,6 +233,17 @@ def getAmountDocuments(request):
 
         return Response({"amount_documents" : amount_documents})
 
+def getPatient(patient_rut, status):
+    patient = paciente_collection.find_one({"rut": patient_rut, "activo":status})
+    patient = encriptar_or_desencriptar(patient, "desencriptar")
+    if(patient):
+        patient["_id"] = str(patient["_id"])
+        response = patient
+    else:
+        response = {"detail": "Patient not found"}
+
+    return response
+
 # Api view para trabajar sobre un paciente especifico
 @api_view(['GET', 'PUT']) 
 def pacienteEspecificoView(request, rut_paciente):
@@ -240,15 +251,8 @@ def pacienteEspecificoView(request, rut_paciente):
         return Response({"detail": "Authentication credentials were not provided."})
 
     if request.method == 'GET':
-        paciente = paciente_collection.find_one({"rut": rut_paciente, "activo":True})
-        paciente = encriptar_or_desencriptar(paciente, "desencriptar")
-        if(paciente):
-            paciente["_id"] = str(paciente["_id"])
-            respuesta = paciente
-        else:
-            respuesta = {"detail": "Patient not found"}
-
-        return Response(respuesta)
+        patient = getPatient(rut_paciente, True)
+        return Response(patient)
 
     if request.method == 'PUT':
         patient_exists = paciente_collection.find_one(
@@ -275,6 +279,15 @@ def setPatientStatusView(request):
             {'rut': patient_rut}, {'$set': { "activo": activo }}
         )
         return Response({"result": True})
+
+@api_view(['POST'])
+def adminSearchView(request):
+
+    if request.method == 'POST':
+        patient_rut = request.data["rut"]
+        activo = request.data["activo"]
+        patient = getPatient(patient_rut, activo)
+        return Response(patient)
 
 @api_view(['PUT']) 
 def setEsAtendidoAhoraView(request, rut_paciente):
