@@ -143,8 +143,8 @@ def desencriptarListaDePacientes(pacientes):
         pacientes_desencriptados.append(paciente)
     return pacientes_desencriptados
 
-def getPatients(skip):
-    pacientes = paciente_collection.find({"activo":True}, {"nombre": 1, "apellidos": 1, "rut": 1, "direccion": 1, "fecha_nacimiento": 1, "ciudad": 1}).skip(skip).limit(10)
+def getPatients(skip, activos):
+    pacientes = paciente_collection.find({"activo":activos}, {"nombre": 1, "apellidos": 1, "rut": 1, "direccion": 1, "fecha_nacimiento": 1, "ciudad": 1}).skip(skip).limit(10)
     pacientes_desencriptados = desencriptarListaDePacientes(pacientes)
     return pacientes_desencriptados
 
@@ -195,7 +195,7 @@ def pacientesView(request):
     
     if request.method == 'GET':
 
-        return Response(getPatients(0))
+        return Response(getPatients(0, True))
 
     if request.method == 'POST':
         """
@@ -219,18 +219,18 @@ def pacientesView(request):
 
 
 @api_view(['POST'])
-def getSkipPatientsView(request, skip):
+def getSkipPatientsView(request):
     if request.method == 'POST':
-        return Response(getPatients(int(skip)))
+        skip = request.data['skip']
+        activos = request.data['activos']
+        return Response(getPatients(int(skip), activos))
 
-@api_view(['GET'])
-def getAmountDocuments(request, collection_name):
-    if request.method == 'GET':
-        amount_documents = 0
-        if collection_name == "historial_paciente":
-            amount_documents = paciente_collection.count({"activo":True})
-        elif collection_name == "editor_profesionalsalud":
-            amount_documents = profesionales_salud_collection.count({})
+@api_view(['POST'])
+def getAmountDocuments(request):
+    if request.method == 'POST':
+        pacientes_activos = request.data["activos"]
+        amount_documents = paciente_collection.count({"activo":pacientes_activos})
+
         return Response({"amount_documents" : amount_documents})
 
 # Api view para trabajar sobre un paciente especifico
