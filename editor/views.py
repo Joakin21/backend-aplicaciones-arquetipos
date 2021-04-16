@@ -234,7 +234,7 @@ def getAmountDocuments(request):
         return Response({"amount_documents" : amount_documents})
 
 # Api view para trabajar sobre un paciente especifico
-@api_view(['GET', 'PUT', 'DELETE']) 
+@api_view(['GET', 'PUT']) 
 def pacienteEspecificoView(request, rut_paciente):
     if not tokenDeSesionValido(request.headers["Authorization"]):
         return Response({"detail": "Authentication credentials were not provided."})
@@ -265,15 +265,16 @@ def pacienteEspecificoView(request, rut_paciente):
         else:
             return Response({"detail": "Patient rut already exists"})
 
-    if request.method == 'DELETE':
-
-        delete_patient = paciente_collection.delete_one(
-            {'rut': rut_paciente})
-
-        if delete_patient.deleted_count > 0:
-            return Response({"pateient deleted": True})
-        else:
-            return Response({"detail": "The patient does not exist"})
+@api_view(['PUT'])
+def setPatientStatusView(request):
+    patient_rut = request.data["rut"]
+    activo = request.data["activo"]
+    
+    if request.method == 'PUT':
+        result_update = paciente_collection.update_one(
+            {'rut': patient_rut}, {'$set': { "activo": activo }}
+        )
+        return Response({"result": True})
 
 @api_view(['PUT']) 
 def setEsAtendidoAhoraView(request, rut_paciente):
